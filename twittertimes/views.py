@@ -13,18 +13,18 @@ from flask import Response
 
 from flask_oauth import OAuth, OAuthException
 from google.appengine.ext import db
-from flask import request, current_app
 
 oauth = OAuth()
 
 twitter = oauth.remote_app('twitter',
-        base_url='https://api.twitter.com/1/',
-        request_token_url='https://api.twitter.com/oauth/request_token',
-        access_token_url='https://api.twitter.com/oauth/access_token',
-        authorize_url='https://api.twitter.com/oauth/authenticate',
-        consumer_key=settings.TWITTER_CONSUMER_KEY,
-        consumer_secret=settings.TWITTER_CONSUMER_SECRET,
-        )
+                           base_url='https://api.twitter.com/1/',
+                           request_token_url='https://api.twitter.com/oauth/request_token',
+                           access_token_url='https://api.twitter.com/oauth/access_token',
+                           authorize_url='https://api.twitter.com/oauth/authenticate',
+                           consumer_key=settings.TWITTER_CONSUMER_KEY,
+                           consumer_secret=settings.TWITTER_CONSUMER_SECRET,
+                           )
+
 
 @app.route('/')
 def index():
@@ -40,20 +40,23 @@ def get_twitter_token(token=None):
     else:
         return None
 
+
 @app.route('/login')
 def login():
     if not session.get('twitter_handle'):
         return twitter.authorize(callback=url_for('oauth_authorized',
-            next=request.args.get('next') or request.referrer or None))
+                                                  next=request.args.get('next') or request.referrer or None))
     else:
         next_url = request.args.get('next') or url_for('index')
         return redirect(next_url)
+
 
 @app.route('/logout')
 def logout():
     next_url = request.args.get('next') or url_for('index')
     session.clear()
     return redirect(next_url)
+
 
 @app.route('/oauth-authorized')
 @twitter.authorized_handler
@@ -65,8 +68,8 @@ def oauth_authorized(resp):
 
     user = get_user(resp['screen_name'])
     if user:
-        user.oauth_token=resp['oauth_token']
-        user.oauth_token_secret=resp['oauth_token_secret']
+        user.oauth_token = resp['oauth_token']
+        user.oauth_token_secret = resp['oauth_token_secret']
     else:
         user = TwitterUser(
             handle=resp['screen_name'],
@@ -82,7 +85,6 @@ def oauth_authorized(resp):
 
 @app.route('/statuses/<resource>')
 def timeline(resource='home_timeline.json'):
-    next_url = request.args.get('next') or url_for('index')
     data = request.args.copy()
     try:
         del data['next']
@@ -97,6 +99,7 @@ def timeline(resource='home_timeline.json'):
     else:
         return resp
 
+
 @app.route('/loggedin')
 @jsonp
 def loggedin():
@@ -106,6 +109,19 @@ def loggedin():
     else:
         resp = Response("false", status=200, mimetype='application/json')
         return resp
+
+
+@app.route('/loggedinuser')
+@jsonp
+def loggedinuser():
+    handle = session.get('twitter_handle')
+    if handle:
+        resp = Response(handle, status=200, mimetype='application/json')
+        return resp
+    else:
+        resp = Response("false", status=200, mimetype='application/json')
+        return resp
+
 
 @app.errorhandler(OAuthException)
 def handle_oauth_exception(error):
