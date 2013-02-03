@@ -116,7 +116,7 @@ def loggedin():
 def loggedinuser():
     handle = session.get('twitter_handle')
     if handle:
-        resp = Response(handle, status=200, mimetype='application/json')
+        resp = Response("\"%s\"" % handle, status=200, mimetype='application/json')
         return resp
     else:
         resp = Response("false", status=200, mimetype='application/json')
